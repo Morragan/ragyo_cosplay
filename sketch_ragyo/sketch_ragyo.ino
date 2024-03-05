@@ -18,8 +18,18 @@ uint8_t stagger = 30;
 uint8_t brightness = 50;
 
 BLEService ledService(SERVICE_UUID);
-BLEShortCharacteristic colorIndexCharacteristic(CHAR_UUID_HUE, BLEWrite | BLEWriteWithoutResponse | BLERead | BLENotify);
 BLEBoolCharacteristic disconnectCharacteristic(CHAR_UUID_DISCONNECT, BLEWriteWithoutResponse | BLERead);
+BLEShortCharacteristic modeCharacteristic(CHAR_UUID_MODE, BLEWriteWithoutResponse | BLERead);
+BLEShortCharacteristic colorIndexCharacteristic(CHAR_UUID_HUE, BLEWriteWithoutResponse | BLERead);
+BLEShortCharacteristic speedCharacteristic(CHAR_UUID_SPEED, BLEWriteWithoutResponse | BLERead);
+
+enum MODE_STATE {
+  RAINBOW,
+  RAVE,
+  CONTROLLED,
+};
+
+MODE_STATE mode = RAINBOW;
 
 DEFINE_GRADIENT_PALETTE(rainbow_palette){
   0, 255, 0, 0,      // Red
@@ -55,10 +65,12 @@ void setup() {
   BLE.setAdvertisedService(ledService);
   ledService.addCharacteristic(colorIndexCharacteristic);
   ledService.addCharacteristic(disconnectCharacteristic);
+  ledService.addCharacteristic(modeCharacteristic);
   BLE.addService(ledService);
 
   colorIndexCharacteristic.writeValue(0);
   disconnectCharacteristic.writeValue(false);
+  modeCharacteristic.writeValue(0);
   BLE.advertise();
 }
 
@@ -66,12 +78,16 @@ void loop() {
   EVERY_N_MILLIS(30) {
     BLEDevice phone = BLE.central();
     if (phone.connected()) {
-      color_index = colorIndexCharacteristic.value();
-
-      uint8_t total = 0;
-      for (int i = 0; i < NUM_SEGS; i++) {
-        fill_solid(leds + total, segments[i], ColorFromPalette(palette, color_index + i * stagger));
-        total += segments[i];
+      switch (mode) {
+        case RAINBOW:
+          rainbow_cycle();
+          break;
+        case RAVE:
+          rave_cycle();
+          break;
+        case CONTROLLED:
+          controlled_cycle();
+          break;
       }
     } else {
       fill_solid(leds, NUM_LEDS, CRGB::Blue);
@@ -79,12 +95,47 @@ void loop() {
     FastLED.show();
   }
 
-  EVERY_N_MILLIS(200) {
+  EVERY_N_MILLIS(500) {
     BLEDevice phone = BLE.central();
     if (disconnectCharacteristic.value()) {
       phone.disconnect();
       BLE.advertise();
       disconnectCharacteristic.writeValue(false);
     }
+  }
+
+  EVERY_N_MILLIS(500) {
+    mode = static_cast<MODE_STATE>(modeCharacteristic.value());
+  }
+}
+
+void rainbow_cycle() {
+  uint8_t total = 0;
+  for (int i = 0; i < NUM_SEGS; i++) {
+    fill_solid(leds + total, segments[i], ColorFromPalette(palette, color_index + i * stagger));
+    total += segments[i];
+  }
+
+  EVERY_N_MILLIS(30) {
+    color_index++;
+  }
+}
+
+void controlled_cycle() {
+  color_index = colorIndexCharacteristic.value();
+
+  uint8_t total = 0;
+  for (int i = 0; i < NUM_SEGS; i++) {
+    fill_solid(leds + total, segments[i], ColorFromPalette(palette, color_index + i * stagger));
+    total += segments[i];
+  }
+}
+
+void rave_cycle() {
+  uint8_t total = 0;
+  fill_solid(leds, NUM_LEDS, ColorFromPalette(palette, color_index));
+
+  EVERY_N_MILLIS(900) {
+    color_index = random8();
   }
 }

@@ -20,6 +20,7 @@ version: 1.0.0+1
 
 environment:
   sdk: '>=3.1.2 <4.0.0'
+  flutter: ">=3.0.0"
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -37,6 +38,9 @@ dependencies:
   cupertino_icons: ^1.0.2
   flutter_reactive_ble: ^5.3.1
   permission_handler: ^11.0.1
+  google_fonts: ^6.2.0
+  flutter_riverpod: ^2.4.10
+  riverpod_annotation: ^2.3.4
 
 dev_dependencies:
   flutter_test:
@@ -48,6 +52,10 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^2.0.0
+  custom_lint: ^0.6.2
+  riverpod_lint: ^2.3.9
+  build_runner: ^2.4.8
+  riverpod_generator: ^2.3.11
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
