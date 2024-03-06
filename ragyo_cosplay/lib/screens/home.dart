@@ -55,22 +55,138 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
 
     if (bluetoothState.connected) {
-      content = Column(
-        children: [
-          Slider(
-            value: bluetoothState.hue,
-            onChanged: (hue) => bluetooth.hue = hue,
-            min: 0,
-            max: 255,
-          ),
-        ],
+      content = Padding(
+        padding: const EdgeInsets.symmetric(vertical: 40),
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Text(
+                    "Brightness",
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    "${(bluetoothState.brightness / 255 * 100).toInt()}%",
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                  )
+                ],
+              ),
+            ),
+            Slider(
+              label: "Brightness",
+              value: bluetoothState.brightness,
+              onChanged: (brightness) => bluetooth.brightness = brightness,
+              min: 0,
+              max: 255,
+            ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Text(
+                    "Hue",
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    bluetoothState.hue.toInt().toString(),
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                  )
+                ],
+              ),
+            ),
+            Slider(
+              label: "Hue",
+              value: bluetoothState.hue,
+              onChanged: (hue) => bluetooth.hue = hue,
+              min: 0,
+              max: 255,
+            ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Text(
+                    "Rainbow speed",
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    "${((bluetoothState.rainbowSpeed) / 500 * 100).toInt()}%",
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                  )
+                ],
+              ),
+            ),
+            Slider(
+              label: "Rainbow speed",
+              value: bluetoothState.rainbowSpeed,
+              onChanged: (speed) => bluetooth.rainbowSpeed = speed,
+              min: 10,
+              max: 500,
+            ),
+            const SizedBox(height: 20),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Text(
+                    "Rave speed",
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    "${((bluetoothState.raveSpeed) / 1000 * 100).toInt()}%",
+                    style: Theme.of(context).textTheme.titleLarge!.copyWith(
+                          color:
+                              Theme.of(context).colorScheme.onPrimaryContainer,
+                        ),
+                  )
+                ],
+              ),
+            ),
+            Slider(
+              label: "Rave speed",
+              value: bluetoothState.raveSpeed,
+              onChanged: (speed) => bluetooth.raveSpeed = speed,
+              min: 120,
+              max: 1000,
+            ),
+          ],
+        ),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Ragyo Kiryuin",
+          "Ragyo Kiryuin - ${bluetoothState.mode.name[0].toUpperCase()}${bluetoothState.mode.name.substring(1)} Mode",
           style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,

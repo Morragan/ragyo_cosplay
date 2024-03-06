@@ -25,7 +25,7 @@ class _MainDrawerState extends ConsumerState<MainDrawer> {
   @override
   void initState() {
     super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(const Duration(milliseconds: 600), (timer) {
       double hue = random.nextDouble() * 360;
       while ((hue - _lastHue).abs() < 60) {
         hue = random.nextDouble() * 360;

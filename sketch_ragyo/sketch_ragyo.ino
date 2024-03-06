@@ -13,15 +13,19 @@
 
 CRGB leds[NUM_LEDS];
 uint8_t segments[] = { SEG1, SEG2, SEG3, SEG4, SEG5 };
-uint8_t color_index = 0;
+uint8_t hue = 0;
+unsigned short rainbowSpeed = 30;
+unsigned short raveSpeed = 1000;
 uint8_t stagger = 30;
 uint8_t brightness = 50;
 
 BLEService ledService(SERVICE_UUID);
-BLEBoolCharacteristic disconnectCharacteristic(CHAR_UUID_DISCONNECT, BLEWriteWithoutResponse | BLERead);
+BLEShortCharacteristic disconnectCharacteristic(CHAR_UUID_DISCONNECT, BLEWriteWithoutResponse | BLEWrite | BLERead);
 BLEShortCharacteristic modeCharacteristic(CHAR_UUID_MODE, BLEWriteWithoutResponse | BLERead);
-BLEShortCharacteristic colorIndexCharacteristic(CHAR_UUID_HUE, BLEWriteWithoutResponse | BLERead);
-BLEShortCharacteristic speedCharacteristic(CHAR_UUID_SPEED, BLEWriteWithoutResponse | BLERead);
+BLEShortCharacteristic brightnessCharacteristic(CHAR_UUID_BRIGHTNESS, BLEWriteWithoutResponse | BLERead);
+BLEShortCharacteristic hueCharacteristic(CHAR_UUID_HUE, BLEWriteWithoutResponse | BLERead);
+BLEUnsignedIntCharacteristic rainbowSpeedCharacteristic(CHAR_UUID_RAINBOW_SPEED, BLEWriteWithoutResponse | BLERead);
+BLEUnsignedIntCharacteristic raveSpeedCharacteristic(CHAR_UUID_RAVE_SPEED, BLEWriteWithoutResponse | BLERead);
 
 enum MODE_STATE {
   RAINBOW,
@@ -63,79 +67,97 @@ void setup() {
 
   BLE.setLocalName("Kiryuino");
   BLE.setAdvertisedService(ledService);
-  ledService.addCharacteristic(colorIndexCharacteristic);
   ledService.addCharacteristic(disconnectCharacteristic);
   ledService.addCharacteristic(modeCharacteristic);
+  ledService.addCharacteristic(brightnessCharacteristic);
+  ledService.addCharacteristic(hueCharacteristic);
+  ledService.addCharacteristic(rainbowSpeedCharacteristic);
+  ledService.addCharacteristic(raveSpeedCharacteristic);
   BLE.addService(ledService);
 
-  colorIndexCharacteristic.writeValue(0);
-  disconnectCharacteristic.writeValue(false);
+  disconnectCharacteristic.writeValue(0);
   modeCharacteristic.writeValue(0);
+  brightnessCharacteristic.writeValue(brightness);
+  hueCharacteristic.writeValue(hue);
+  rainbowSpeedCharacteristic.writeValue(rainbowSpeed);
+  raveSpeedCharacteristic.writeValue(raveSpeed);
   BLE.advertise();
 }
 
+// TODO: adjust min/max speed; maybe decouple from the main EVERY_N_MILLIS(40) somehow?
 void loop() {
-  EVERY_N_MILLIS(30) {
+  EVERY_N_MILLIS(40) {
     BLEDevice phone = BLE.central();
     if (phone.connected()) {
+      mode = static_cast<MODE_STATE>(modeCharacteristic.value());
+      brightness = brightnessCharacteristic.value();
+      FastLED.setBrightness(brightness);
+
       switch (mode) {
         case RAINBOW:
-          rainbow_cycle();
+          rainbowCycle();
           break;
         case RAVE:
-          rave_cycle();
+          raveCycle();
           break;
         case CONTROLLED:
-          controlled_cycle();
+          controlledCycle();
           break;
+      }
+
+      if (disconnectCharacteristic.written() && disconnectCharacteristic.value()) {
+        disconnectCharacteristic.writeValue(0);
+        phone.disconnect();
+        BLE.advertise();
       }
     } else {
       fill_solid(leds, NUM_LEDS, CRGB::Blue);
     }
     FastLED.show();
   }
-
-  EVERY_N_MILLIS(500) {
-    BLEDevice phone = BLE.central();
-    if (disconnectCharacteristic.value()) {
-      phone.disconnect();
-      BLE.advertise();
-      disconnectCharacteristic.writeValue(false);
-    }
-  }
-
-  EVERY_N_MILLIS(500) {
-    mode = static_cast<MODE_STATE>(modeCharacteristic.value());
-  }
 }
 
-void rainbow_cycle() {
+void rainbowCycle() {
+  static unsigned long lastMillis = millis();
+  uint16_t diff = millis() - lastMillis;
+
   uint8_t total = 0;
   for (int i = 0; i < NUM_SEGS; i++) {
-    fill_solid(leds + total, segments[i], ColorFromPalette(palette, color_index + i * stagger));
+    fill_solid(leds + total, segments[i], ColorFromPalette(palette, hue + i * stagger));
     total += segments[i];
   }
 
-  EVERY_N_MILLIS(30) {
-    color_index++;
+  rainbowSpeed = rainbowSpeedCharacteristic.value();
+
+  if (diff > rainbowSpeed) {
+    hue += 2;
+    lastMillis = millis();
   }
 }
 
-void controlled_cycle() {
-  color_index = colorIndexCharacteristic.value();
+void controlledCycle() {
+  hue = hueCharacteristic.value();
 
   uint8_t total = 0;
   for (int i = 0; i < NUM_SEGS; i++) {
-    fill_solid(leds + total, segments[i], ColorFromPalette(palette, color_index + i * stagger));
+    fill_solid(leds + total, segments[i], ColorFromPalette(palette, hue + i * stagger));
     total += segments[i];
   }
 }
 
-void rave_cycle() {
-  uint8_t total = 0;
-  fill_solid(leds, NUM_LEDS, ColorFromPalette(palette, color_index));
+void raveCycle() {
+  static unsigned long lastMillis = millis();
+  uint16_t diff = millis() - lastMillis;
 
-  EVERY_N_MILLIS(900) {
-    color_index = random8();
+  uint8_t total = 0;
+  fill_solid(leds, NUM_LEDS, ColorFromPalette(palette, hue));
+
+  raveSpeed = raveSpeedCharacteristic.value();
+
+  if (diff > raveSpeed) {
+    uint8_t random = random8();
+    while (abs(hue - random) < 50) random = random8();
+    hue = random8();
+    lastMillis = millis();
   }
 }

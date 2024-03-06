@@ -10,7 +10,8 @@ class BluetoothState {
     required this.connecting,
     required this.mode,
     required this.hue,
-    required this.speed,
+    required this.rainbowSpeed,
+    required this.raveSpeed,
     required this.brightness,
   });
 
@@ -19,7 +20,8 @@ class BluetoothState {
     bool? connecting,
     Mode? mode,
     double? hue,
-    double? speed,
+    double? rainbowSpeed,
+    double? raveSpeed,
     double? brightness,
   }) {
     return BluetoothState(
@@ -27,7 +29,8 @@ class BluetoothState {
         connecting: connecting ?? this.connecting,
         mode: mode ?? this.mode,
         hue: hue ?? this.hue,
-        speed: speed ?? this.speed,
+        rainbowSpeed: rainbowSpeed ?? this.rainbowSpeed,
+        raveSpeed: raveSpeed ?? this.raveSpeed,
         brightness: brightness ?? this.brightness);
   }
 
@@ -35,7 +38,8 @@ class BluetoothState {
   final bool connecting;
   final Mode mode;
   final double hue;
-  final double speed;
+  final double rainbowSpeed;
+  final double raveSpeed;
   final double brightness;
 }
 
@@ -48,22 +52,25 @@ class BluetoothNotifier extends _$BluetoothNotifier {
       connecting: false,
       mode: Mode.rainbow,
       hue: 0,
-      speed: 50,
+      rainbowSpeed: 30,
+      raveSpeed: 900,
       brightness: 64,
     );
   }
 
-  set connecting(bool connecting) {
-    state = state.copyWith(connecting: connecting);
-  }
+  set connecting(bool connecting) =>
+      state = state.copyWith(connecting: connecting);
 
-  set connected(bool connected) {
-    state = state.copyWith(connected: connected);
-  }
+  set connected(bool connected) => state = state.copyWith(connected: connected);
 
-  set mode(Mode mode) {
-    state = state.copyWith(mode: mode);
-  }
+  set mode(Mode mode) => state = state.copyWith(mode: mode);
+
+  set brightness(double brightness) =>
+      state = state.copyWith(brightness: brightness);
 
   set hue(double hue) => state = state.copyWith(hue: hue);
+
+  set rainbowSpeed(double speed) => state = state.copyWith(rainbowSpeed: speed);
+
+  set raveSpeed(double speed) => state = state.copyWith(raveSpeed: speed);
 }
