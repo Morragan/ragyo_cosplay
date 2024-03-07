@@ -82,9 +82,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             Slider(
-              label: "Brightness",
+              label: bluetoothState.brightness.toInt().toString(),
               value: bluetoothState.brightness,
               onChanged: (brightness) => bluetooth.brightness = brightness,
+              divisions: 100,
               min: 0,
               max: 255,
             ),
@@ -112,9 +113,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             Slider(
-              label: "Hue",
+              label: bluetoothState.hue.toInt().toString(),
               value: bluetoothState.hue,
               onChanged: (hue) => bluetooth.hue = hue,
+              divisions: 100,
               min: 0,
               max: 255,
             ),
@@ -142,9 +144,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             Slider(
-              label: "Rainbow speed",
+              label: bluetoothState.rainbowSpeed.toInt().toString(),
               value: bluetoothState.rainbowSpeed,
               onChanged: (speed) => bluetooth.rainbowSpeed = speed,
+              divisions: 100,
               min: 10,
               max: 500,
             ),
@@ -172,9 +175,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
             ),
             Slider(
-              label: "Rave speed",
+              label: bluetoothState.raveSpeed.toInt().toString(),
               value: bluetoothState.raveSpeed,
               onChanged: (speed) => bluetooth.raveSpeed = speed,
+              divisions: 100,
               min: 120,
               max: 1000,
             ),
@@ -183,10 +187,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       );
     }
 
+    final modeName =
+        "${bluetoothState.mode.name[0].toUpperCase()}${bluetoothState.mode.name.substring(1)} Mode";
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          "Ragyo Kiryuin - ${bluetoothState.mode.name[0].toUpperCase()}${bluetoothState.mode.name.substring(1)} Mode",
+          bluetoothState.connected
+              ? "Ragyo Kiryuin - $modeName"
+              : "Ragyo Kiryuin",
           style: TextStyle(color: Theme.of(context).colorScheme.onPrimary),
         ),
         backgroundColor: Theme.of(context).colorScheme.primary,

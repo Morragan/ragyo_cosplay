@@ -14,10 +14,12 @@
 CRGB leds[NUM_LEDS];
 uint8_t segments[] = { SEG1, SEG2, SEG3, SEG4, SEG5 };
 uint8_t hue = 0;
-unsigned short rainbowSpeed = 30;
-unsigned short raveSpeed = 1000;
+unsigned short rainbowSpeed = 300;
+unsigned short raveSpeed = 500;
 uint8_t stagger = 30;
 uint8_t brightness = 50;
+
+BLEDevice phone;
 
 BLEService ledService(SERVICE_UUID);
 BLEShortCharacteristic disconnectCharacteristic(CHAR_UUID_DISCONNECT, BLEWriteWithoutResponse | BLEWrite | BLERead);
@@ -81,18 +83,57 @@ void setup() {
   hueCharacteristic.writeValue(hue);
   rainbowSpeedCharacteristic.writeValue(rainbowSpeed);
   raveSpeedCharacteristic.writeValue(raveSpeed);
+
+  disconnectCharacteristic.setEventHandler(BLEWritten, disconnectCharacteristicWritten);
+  modeCharacteristic.setEventHandler(BLEWritten, modeCharacteristicWritten);
+  brightnessCharacteristic.setEventHandler(BLEWritten, brightnessCharacteristicWritten);
+  hueCharacteristic.setEventHandler(BLEWritten, hueCharacteristicWritten);
+  rainbowSpeedCharacteristic.setEventHandler(BLEWritten, rainbowSpeedCharacteristicWritten);
+  raveSpeedCharacteristic.setEventHandler(BLEWritten, raveSpeedCharacteristicWritten);
+
   BLE.advertise();
 }
 
-// TODO: adjust min/max speed; maybe decouple from the main EVERY_N_MILLIS(40) somehow?
-void loop() {
-  EVERY_N_MILLIS(40) {
-    BLEDevice phone = BLE.central();
-    if (phone.connected()) {
-      mode = static_cast<MODE_STATE>(modeCharacteristic.value());
-      brightness = brightnessCharacteristic.value();
-      FastLED.setBrightness(brightness);
+void disconnectCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  if (!disconnectCharacteristic.value()) return;
 
+  disconnectCharacteristic.writeValue(0);
+  if (phone) phone.disconnect();
+  BLE.advertise();
+}
+
+void modeCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  mode = static_cast<MODE_STATE>(modeCharacteristic.value());
+}
+
+void brightnessCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  brightness = brightnessCharacteristic.value();
+  FastLED.setBrightness(brightness);
+}
+
+void hueCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  hue = hueCharacteristic.value();
+}
+
+void rainbowSpeedCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  rainbowSpeed = rainbowSpeedCharacteristic.value();
+}
+
+void raveSpeedCharacteristicWritten(BLEDevice central, BLECharacteristic characteristic) {
+  raveSpeed = raveSpeedCharacteristic.value();
+}
+
+// TODO: adjust min/max speed;
+void loop() {
+  static unsigned long lastMillis = millis();
+
+  if (millis() - lastMillis > 400) {
+    phone = BLE.central();  // this seems heavy and BLE.addEventListener(BLEConnected) doesn't seem to work, so execute it rarely in loop
+    lastMillis = millis();
+  }
+
+  EVERY_N_MILLIS(20) {
+    if (phone && phone.connected()) {
       switch (mode) {
         case RAINBOW:
           rainbowCycle();
@@ -104,12 +145,6 @@ void loop() {
           controlledCycle();
           break;
       }
-
-      if (disconnectCharacteristic.written() && disconnectCharacteristic.value()) {
-        disconnectCharacteristic.writeValue(0);
-        phone.disconnect();
-        BLE.advertise();
-      }
     } else {
       fill_solid(leds, NUM_LEDS, CRGB::Blue);
     }
@@ -119,7 +154,6 @@ void loop() {
 
 void rainbowCycle() {
   static unsigned long lastMillis = millis();
-  uint16_t diff = millis() - lastMillis;
 
   uint8_t total = 0;
   for (int i = 0; i < NUM_SEGS; i++) {
@@ -127,17 +161,13 @@ void rainbowCycle() {
     total += segments[i];
   }
 
-  rainbowSpeed = rainbowSpeedCharacteristic.value();
-
-  if (diff > rainbowSpeed) {
-    hue += 2;
+  if (millis() - lastMillis > rainbowSpeed) {
+    hue += 5;
     lastMillis = millis();
   }
 }
 
 void controlledCycle() {
-  hue = hueCharacteristic.value();
-
   uint8_t total = 0;
   for (int i = 0; i < NUM_SEGS; i++) {
     fill_solid(leds + total, segments[i], ColorFromPalette(palette, hue + i * stagger));
@@ -147,14 +177,11 @@ void controlledCycle() {
 
 void raveCycle() {
   static unsigned long lastMillis = millis();
-  uint16_t diff = millis() - lastMillis;
 
   uint8_t total = 0;
   fill_solid(leds, NUM_LEDS, ColorFromPalette(palette, hue));
 
-  raveSpeed = raveSpeedCharacteristic.value();
-
-  if (diff > raveSpeed) {
+  if (millis() - lastMillis > raveSpeed) {
     uint8_t random = random8();
     while (abs(hue - random) < 50) random = random8();
     hue = random8();

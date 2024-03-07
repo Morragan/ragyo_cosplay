@@ -5,6 +5,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:ragyo_cosplay/providers/bluetooth.dart';
 import 'package:ragyo_cosplay/secrets.dart';
 
+const CHAR_WRITE_RATE_MS = 10;
+
+List<int> intToBytes(int value) {
+  // Assuming a 16-bit integer (2 bytes)
+  return [
+    (value & 0xFF), // Least significant byte
+    ((value >> 8) & 0xFF), // Most significant byte
+  ];
+}
+
 class Bluetooth {
   Bluetooth({required this.ref});
 
@@ -55,7 +65,12 @@ class Bluetooth {
       ]
     });
     _connection = connection.listen((connectedDevice) {
-      if (connectedDevice.connectionState != DeviceConnectionState.connected) {
+      if (connectedDevice.connectionState ==
+          DeviceConnectionState.disconnected) {
+        ref.read(bluetoothNotifierProvider.notifier).connected = false;
+        ref.read(bluetoothNotifierProvider.notifier).connecting = false;
+      } else if (connectedDevice.connectionState !=
+          DeviceConnectionState.connected) {
         ref.read(bluetoothNotifierProvider.notifier).connected = false;
         return;
       } else {
@@ -74,14 +89,6 @@ class Bluetooth {
     );
   }
 
-  List<int> intToBytes(int value) {
-    // Assuming a 16-bit integer (2 bytes)
-    return [
-      (value & 0xFF), // Least significant byte
-      ((value >> 8) & 0xFF), // Most significant byte
-    ];
-  }
-
   set mode(Mode mode) {
     ref.read(bluetoothNotifierProvider.notifier).mode = mode;
     if (!ref.read(bluetoothNotifierProvider).connected) return;
@@ -97,7 +104,7 @@ class Bluetooth {
     if (!ref.read(bluetoothNotifierProvider).connected) return;
 
     if (_hueDebouncer?.isActive ?? false) _hueDebouncer?.cancel();
-    _hueDebouncer = Timer(const Duration(milliseconds: 40), () {
+    _hueDebouncer = Timer(const Duration(milliseconds: CHAR_WRITE_RATE_MS), () {
       ble.writeCharacteristicWithoutResponse(
         _brightnessCharacteristic,
         value: [brightness.toInt()],
@@ -110,7 +117,7 @@ class Bluetooth {
     if (!ref.read(bluetoothNotifierProvider).connected) return;
 
     if (_hueDebouncer?.isActive ?? false) _hueDebouncer?.cancel();
-    _hueDebouncer = Timer(const Duration(milliseconds: 40), () {
+    _hueDebouncer = Timer(const Duration(milliseconds: CHAR_WRITE_RATE_MS), () {
       ble.writeCharacteristicWithoutResponse(
         _hueCharacteristic,
         value: [hue.toInt()],
@@ -125,7 +132,8 @@ class Bluetooth {
     if (_rainbowSpeedDebouncer?.isActive ?? false) {
       _rainbowSpeedDebouncer?.cancel();
     }
-    _rainbowSpeedDebouncer = Timer(const Duration(milliseconds: 40), () {
+    _rainbowSpeedDebouncer =
+        Timer(const Duration(milliseconds: CHAR_WRITE_RATE_MS), () {
       ble.writeCharacteristicWithoutResponse(
         _rainbowSpeedCharacteristic,
         value: intToBytes(510 - speed.toInt()),
@@ -138,7 +146,8 @@ class Bluetooth {
     if (!ref.read(bluetoothNotifierProvider).connected) return;
 
     if (_raveSpeedDebouncer?.isActive ?? false) _raveSpeedDebouncer?.cancel();
-    _raveSpeedDebouncer = Timer(const Duration(milliseconds: 40), () {
+    _raveSpeedDebouncer =
+        Timer(const Duration(milliseconds: CHAR_WRITE_RATE_MS), () {
       ble.writeCharacteristicWithoutResponse(
         _raveSpeedCharacteristic,
         value: intToBytes(1120 - speed.toInt()),
